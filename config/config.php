@@ -27,29 +27,36 @@ define('APP_VERSION', '1.0.0');
  * Determine dynamic base URL for both local XAMPP and Vercel environments
  */
 function getBaseUrl(): string {
-    $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443) ? 'https://' : 'http://';
-    $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+    // Check if running under XAMPP subdirectory (e.g. /Coreinventory or /Core_inventory2)
+    $candidates = [
+        $_SERVER['SCRIPT_NAME'] ?? '',
+        $_SERVER['REQUEST_URI'] ?? ''
+    ];
     
-    // Check if running under XAMPP subdirectory
-    $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
-    if (preg_match('#^/([^/]+)#', $scriptName, $matches)) {
-        $firstDir = $matches[1];
-        if (stripos($firstDir, 'Coreinventory') !== false || stripos($firstDir, 'Core_inventory') !== false) {
-            return $protocol . $host . '/' . $firstDir;
+    foreach ($candidates as $cand) {
+        if (preg_match('#^/([^/?]+)#', $cand, $matches)) {
+            $firstDir = $matches[1];
+            if (stripos($firstDir, 'Coreinventory') !== false || stripos($firstDir, 'Core_inventory') !== false) {
+                return '/' . $firstDir;
+            }
         }
     }
     
-    return $protocol . $host;
+    // On Vercel or root domain, base URL is root path
+    return '';
 }
 
 define('BASE_URL', getBaseUrl());
 
 /**
- * Helper to generate relative or absolute application URLs
+ * Helper to generate relative application URLs (immune to mixed content and proxy issues)
  */
 function url(string $path = ''): string {
     $trimmedPath = ltrim($path, '/');
-    return BASE_URL . '/' . $trimmedPath;
+    if (empty(BASE_URL)) {
+        return '/' . $trimmedPath;
+    }
+    return rtrim(BASE_URL, '/') . '/' . $trimmedPath;
 }
 
 /**
