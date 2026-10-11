@@ -1,5 +1,6 @@
 {
   "name": "coreinventory",
+  "outputDirectory": "public",
   "functions": {
     "api/**/*.php": {
       "runtime": "vercel-php@0.7.3"
