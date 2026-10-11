@@ -49,6 +49,12 @@ function handleLogin() {
         exit;
     }
 
+    if (!$pdo) {
+        setFlash('error', 'Database connection failed. Please ensure Railway database credentials (DB_HOST, DB_USER, DB_PASSWORD, DB_NAME, DB_PORT or DATABASE_URL) are set in Vercel project settings.');
+        header('Location: ' . url('pages/login.php'));
+        exit;
+    }
+
     try {
         $stmt = $pdo->prepare("SELECT * FROM users WHERE (username = :user_login OR email = :email_login) AND status = 'active' LIMIT 1");
         $stmt->execute([
@@ -65,6 +71,8 @@ function handleLogin() {
             $_SESSION['user_email'] = $user['email'];
             $_SESSION['user_role']  = $user['role'];
 
+            saveSignedSession();
+
             setFlash('success', 'Welcome back, ' . $user['full_name'] . '!');
             $targetDashboard = ($user['role'] === 'admin') ? 'pages/admin-dashboard.php' : 'pages/staff-dashboard.php';
             header('Location: ' . url($targetDashboard));
@@ -74,9 +82,9 @@ function handleLogin() {
             header('Location: ' . url('pages/login.php'));
             exit;
         }
-    } catch (PDOException $e) {
+    } catch (Throwable $e) {
         error_log("Login error: " . $e->getMessage());
-        setFlash('error', 'A system error occurred. Please try again.');
+        setFlash('error', 'Database error: ' . $e->getMessage());
         header('Location: ' . url('pages/login.php'));
         exit;
     }
@@ -161,6 +169,7 @@ function handleRegister() {
  * Handle Logout
  */
 function handleLogout() {
+    clearSignedSession();
     $_SESSION = [];
     if (ini_get("session.use_cookies")) {
         $params = session_get_cookie_params();

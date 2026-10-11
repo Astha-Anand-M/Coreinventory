@@ -5,19 +5,97 @@
  * ==============================================================================
  */
 
-// Start session if not already active
+// Secret key for HMAC signature (serverless stateless session)
+define('SESSION_SECRET', getenv('APP_KEY') ?: 'core_inventory_secure_secret_key_2026_salt');
+
+// Detect if connection is HTTPS (including Vercel reverse proxy)
+function isHttps(): bool {
+    return (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+        || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https')
+        || (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443);
+}
+
+// Start PHP session if not already active
 if (session_status() === PHP_SESSION_NONE) {
-    // Set secure session parameters
     session_set_cookie_params([
         'lifetime' => 0,
         'path'     => '/',
         'domain'   => '',
-        'secure'   => isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on',
+        'secure'   => isHttps(),
         'httponly' => true,
         'samesite' => 'Lax'
     ]);
-    session_start();
+    @session_start();
 }
+
+/**
+ * Load session state from signed cookie (enables stateless persistence across Vercel Lambdas)
+ */
+function loadSignedSession(): void {
+    if (isset($_COOKIE['core_session']) && !empty($_COOKIE['core_session'])) {
+        $parts = explode('.', $_COOKIE['core_session'], 2);
+        if (count($parts) === 2) {
+            $payload = $parts[0];
+            $signature = $parts[1];
+            $expected = hash_hmac('sha256', $payload, SESSION_SECRET);
+            if (hash_equals($expected, $signature)) {
+                $decoded = json_decode(base64_decode($payload), true);
+                if (is_array($decoded)) {
+                    foreach ($decoded as $k => $v) {
+                        $_SESSION[$k] = $v;
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Persist current session into signed cookie
+ */
+function saveSignedSession(): void {
+    $dataToSave = [];
+    foreach ($_SESSION as $k => $v) {
+        $dataToSave[$k] = $v;
+    }
+    $payload = base64_encode(json_encode($dataToSave));
+    $signature = hash_hmac('sha256', $payload, SESSION_SECRET);
+    $cookieVal = $payload . '.' . $signature;
+
+    setcookie('core_session', $cookieVal, [
+        'expires'  => time() + (86400 * 7), // 7 days
+        'path'     => '/',
+        'domain'   => '',
+        'secure'   => isHttps(),
+        'httponly' => true,
+        'samesite' => 'Lax'
+    ]);
+}
+
+/**
+ * Clear signed session cookie on logout
+ */
+function clearSignedSession(): void {
+    $_SESSION = [];
+    setcookie('core_session', '', [
+        'expires'  => time() - 3600,
+        'path'     => '/',
+        'domain'   => '',
+        'secure'   => isHttps(),
+        'httponly' => true,
+        'samesite' => 'Lax'
+    ]);
+}
+
+// Automatically load signed session on initialization
+loadSignedSession();
+
+// Automatically persist signed session on script termination
+register_shutdown_function(function() {
+    if (!empty($_SESSION)) {
+        saveSignedSession();
+    }
+});
 
 // Global App Constants
 define('APP_NAME', 'Core Inventory');
@@ -104,6 +182,7 @@ function setFlash(string $type, string $message): void {
         'type'    => $type,
         'message' => $message
     ];
+    saveSignedSession();
 }
 
 /**
@@ -113,6 +192,7 @@ function getFlash(): ?array {
     if (isset($_SESSION['flash'])) {
         $flash = $_SESSION['flash'];
         unset($_SESSION['flash']);
+        saveSignedSession();
         return $flash;
     }
     return null;
