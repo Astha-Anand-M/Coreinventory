@@ -34,7 +34,7 @@ function getBaseUrl(): string {
     $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
     if (preg_match('#^/([^/]+)#', $scriptName, $matches)) {
         $firstDir = $matches[1];
-        if (stripos($firstDir, 'Core_inventory') !== false) {
+        if (stripos($firstDir, 'Coreinventory') !== false || stripos($firstDir, 'Core_inventory') !== false) {
             return $protocol . $host . '/' . $firstDir;
         }
     }
