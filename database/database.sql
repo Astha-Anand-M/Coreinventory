@@ -3,13 +3,6 @@
 -- Compatible with: MySQL 8.x, MariaDB 10.4+, Railway Cloud MySQL
 -- ==============================================================================
 
--- 1. Create and select database (Ignored safely on managed cloud hosts like Railway)
-CREATE DATABASE IF NOT EXISTS `core_inventory`
-    CHARACTER SET utf8mb4
-    COLLATE utf8mb4_unicode_ci;
-
-USE `core_inventory`;
-
 -- Disable foreign key checks during initialization
 SET FOREIGN_KEY_CHECKS = 0;
 

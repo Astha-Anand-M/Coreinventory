@@ -42,7 +42,14 @@ $flash = getFlash();
 
         <?php if ($flash): ?>
             <div class="alert alert-<?= htmlspecialchars($flash['type']) ?>" style="margin: 0 2rem 1rem 2rem;">
-                <span><?= htmlspecialchars($flash['message']) ?></span>
+                <div><?= htmlspecialchars($flash['message']) ?></div>
+                <?php if (stripos($flash['message'], "doesn't exist") !== false || stripos($flash['message'], "Base table") !== false): ?>
+                    <div style="margin-top: 0.75rem;">
+                        <a href="<?= url('api/setup.php') ?>" class="btn btn-sm btn-primary" style="display: inline-block; text-decoration: none; padding: 0.4rem 0.8rem; font-size: 0.85rem;">
+                            Initialize Railway Database Now &rarr;
+                        </a>
+                    </div>
+                <?php endif; ?>
             </div>
         <?php endif; ?>
 

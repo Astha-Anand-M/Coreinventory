@@ -2,12 +2,6 @@
 -- Core Inventory Management System - Database Schema & Seed Data
 -- ==============================================================================
 
-CREATE DATABASE IF NOT EXISTS `core_inventory`
-    DEFAULT CHARACTER SET utf8mb4
-    DEFAULT COLLATE utf8mb4_unicode_ci;
-
-USE `core_inventory`;
-
 SET FOREIGN_KEY_CHECKS = 0;
 
 DROP TABLE IF EXISTS `stock_transactions`;
