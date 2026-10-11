@@ -9,29 +9,33 @@ $path = trim($requestUri, '/');
 
 // 1. Serve static assets if forwarded through lambda
 if (strpos($path, 'assets/') === 0) {
-    $assetFile = realpath(__DIR__ . '/../' . $path);
-    $assetsDir = realpath(__DIR__ . '/../assets');
-    if ($assetFile && $assetsDir && strpos($assetFile, $assetsDir) === 0 && is_file($assetFile)) {
-        $ext = strtolower(pathinfo($assetFile, PATHINFO_EXTENSION));
-        $mimes = [
-            'css'   => 'text/css; charset=UTF-8',
-            'js'    => 'application/javascript; charset=UTF-8',
-            'png'   => 'image/png',
-            'jpg'   => 'image/jpeg',
-            'jpeg'  => 'image/jpeg',
-            'gif'   => 'image/gif',
-            'svg'   => 'image/svg+xml',
-            'ico'   => 'image/x-icon',
-            'woff'  => 'font/woff',
-            'woff2' => 'font/woff2',
-            'json'  => 'application/json'
-        ];
-        if (isset($mimes[$ext])) {
-            header('Content-Type: ' . $mimes[$ext]);
+    $candidates = [
+        realpath(__DIR__ . '/../' . $path),
+        realpath(__DIR__ . '/../public/' . $path)
+    ];
+    foreach ($candidates as $assetFile) {
+        if ($assetFile && is_file($assetFile)) {
+            $ext = strtolower(pathinfo($assetFile, PATHINFO_EXTENSION));
+            $mimes = [
+                'css'   => 'text/css; charset=UTF-8',
+                'js'    => 'application/javascript; charset=UTF-8',
+                'png'   => 'image/png',
+                'jpg'   => 'image/jpeg',
+                'jpeg'  => 'image/jpeg',
+                'gif'   => 'image/gif',
+                'svg'   => 'image/svg+xml',
+                'ico'   => 'image/x-icon',
+                'woff'  => 'font/woff',
+                'woff2' => 'font/woff2',
+                'json'  => 'application/json'
+            ];
+            if (isset($mimes[$ext])) {
+                header('Content-Type: ' . $mimes[$ext]);
+            }
+            header('Cache-Control: public, max-age=31536000, immutable');
+            readfile($assetFile);
+            exit;
         }
-        header('Cache-Control: public, max-age=31536000, immutable');
-        readfile($assetFile);
-        exit;
     }
 }
 
