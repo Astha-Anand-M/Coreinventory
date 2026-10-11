@@ -1,0 +1,12 @@
+# Environment variables
+.env
+
+# Dependencies & temporary files
+vendor/
+node_modules/
+*.log
+
+# Operating System files
+.DS_Store
+Thumbs.db
+desktop.ini
